@@ -27,7 +27,7 @@
 #include "libnetlink.h"
 
 #ifndef DEFAULT_RTNL_BUFSIZE
-#define DEFAULT_RTNL_BUFSIZE	256 * 1024
+#define DEFAULT_RTNL_BUFSIZE	4 * 1024 * 1024
 #endif
 
 #ifndef RTNL_SND_BUFSIZE
@@ -48,6 +48,7 @@ int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions,
 	socklen_t addr_len;
 	int sndbuf = RTNL_SND_BUFSIZE;
 	int rcvbuf = RTNL_RCV_BUFSIZE;
+	int yes = 1;
 
 	memset(rth, 0, sizeof(*rth));
 
@@ -68,6 +69,9 @@ int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions,
 		ERROR("SO_RCVBUF");
 		return -1;
 	}
+
+	if (setsockopt(rth->fd, SOL_NETLINK, NETLINK_NO_ENOBUFS, &yes, sizeof(yes)) < 0)
+		ERROR("NETLINK_NO_EBUFS");
 
 	memset(&rth->local, 0, sizeof(rth->local));
 	rth->local.nl_family = AF_NETLINK;
