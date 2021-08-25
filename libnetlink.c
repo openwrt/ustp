@@ -411,7 +411,7 @@ int rtnl_listen(struct rtnl_handle *rtnl, rtnl_filter_t handler, void *jarg)
 		if (msg.msg_namelen != sizeof(nladdr)) {
 			ERROR("Sender address length == %d\n",
 				msg.msg_namelen);
-			return -1;
+			continue;
 		}
 		for (h = (struct nlmsghdr *)buf; status >= sizeof(*h);) {
 			int err;
@@ -421,17 +421,17 @@ int rtnl_listen(struct rtnl_handle *rtnl, rtnl_filter_t handler, void *jarg)
 			if (l < 0 || len > status) {
 				if (msg.msg_flags & MSG_TRUNC) {
 					ERROR("Truncated message\n");
-					return -1;
+					continue;
 				}
 				ERROR(
 					"!!!malformed message: len=%d\n", len);
-				return -1;
+				continue;
 			}
 
 			err = handler(&nladdr, h, jarg);
 			if (err < 0) {
 				ERROR("Handler returned %d\n", err);
-				return err;
+				continue;
 			}
 
 			status -= NLMSG_ALIGN(len);
@@ -443,7 +443,7 @@ int rtnl_listen(struct rtnl_handle *rtnl, rtnl_filter_t handler, void *jarg)
 		}
 		if (status) {
 			ERROR("!!!Remnant of size %d\n", status);
-			return -1;
+			continue;
 		}
 	}
 }

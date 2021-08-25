@@ -219,6 +219,7 @@ int init_bridge_ops(void)
     ufd.fd = rth.fd;
     ufd.cb = bridge_event_cb;
 	uloop_fd_add(&ufd, ULOOP_READ | ULOOP_EDGE_TRIGGER);
+	bridge_event_cb(&ufd, 0);
 
     return 0;
 }
