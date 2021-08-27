@@ -38,6 +38,7 @@ int ethtool_get_speed_duplex(char *ifname, int *speed, int *duplex);
 
 bool is_bridge(char *if_name);
 
+int get_bpdu_filter(char *if_name);
 int get_bridge_portno(char *if_name);
 
 #endif /* NETIF_UTILS_H */

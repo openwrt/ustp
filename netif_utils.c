@@ -134,10 +134,10 @@ bool is_bridge(char *if_name)
     return (0 == access(path, R_OK));
 }
 
-int get_bridge_portno(char *if_name)
+static int get_port_file(const char *if_name, const char *file)
 {
     char path[32 + IFNAMSIZ];
-    sprintf(path, SYSFS_CLASS_NET "/%s/brport/port_no", if_name);
+    sprintf(path, SYSFS_CLASS_NET "/%s/brport/%s", if_name, file);
     char buf[128];
     int fd;
     long res = -1;
@@ -146,12 +146,12 @@ int get_bridge_portno(char *if_name)
     TSTM((l = read(fd, buf, sizeof(buf) - 1)) >= 0, -1, "%m");
     if(0 == l)
     {
-        ERROR("Empty port index file");
+        ERROR("Empty %s file", file);
         goto out;
     }
     else if((sizeof(buf) - 1) == l)
     {
-        ERROR("port_index file too long");
+        ERROR("%s file too long", file);
         goto out;
     }
     buf[l] = 0;
@@ -161,10 +161,20 @@ int get_bridge_portno(char *if_name)
     res = strtoul(buf, &end, 0);
     if(0 != *end || INT_MAX < res)
     {
-        ERROR("Invalid port index %s", buf);
+        ERROR("Invalid %s %s", file, buf);
         res = -1;
     }
 out:
     close(fd);
     return res;
+}
+
+int get_bpdu_filter(char *if_name)
+{
+	return get_port_file(if_name, "bpdu_filter");
+}
+
+int get_bridge_portno(char *if_name)
+{
+	return get_port_file(if_name, "port_no");
 }

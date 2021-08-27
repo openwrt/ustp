@@ -217,6 +217,7 @@ static void set_if_up(port_t *prt, bool up)
     int speed = -1;
     int duplex = -1;
     bool changed = false;
+    bool bpdu_filter;
 
     if(check_mac_address(prt->sysdeps.name, prt->sysdeps.macaddr))
     {
@@ -261,6 +262,16 @@ static void set_if_up(port_t *prt, bool up)
             prt->sysdeps.up = true;
             changed = true;
         }
+
+	bpdu_filter = get_bpdu_filter(prt->sysdeps.name);
+	if (bpdu_filter != prt->bpduFilterPort) {
+	    CIST_PortConfig cfg = {
+		    .bpdu_filter_port = bpdu_filter,
+		    .set_bpdu_filter_port = true
+	    };
+
+	    MSTP_IN_set_cist_port_config(prt, &cfg);
+	}
     }
     if(changed)
         MSTP_IN_set_port_enable(prt, prt->sysdeps.up, prt->sysdeps.speed,
