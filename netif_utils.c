@@ -143,7 +143,10 @@ static int get_port_file(const char *if_name, const char *file)
     long res = -1;
     TSTM((fd = open(path, O_RDONLY)) >= 0, -1, "%m");
     int l;
-    TSTM((l = read(fd, buf, sizeof(buf) - 1)) >= 0, -1, "%m");
+    if((l = read(fd, buf, sizeof(buf) - 1)) < 0) {
+        ERROR("Failed to read file %s: error %m", file);
+        return -1;
+    }
     if(0 == l)
     {
         ERROR("Empty %s file", file);
