@@ -10,8 +10,6 @@ ADD_DEFINITIONS(-Os -Wall -Werror --std=gnu99 -g3 -Wmissing-declarations -Wno-er
 ADD_EXECUTABLE(ustpd bridge_track.c brmon.c hmac_md5.c libnetlink.c mstp.c netif_utils.c packet.c worker.c config.c main.c ubus.c)
 TARGET_LINK_LIBRARIES(ustpd ubox ubus Threads::Threads)
 
-SET(CMAKE_INSTALL_PREFIX /)
-
 INSTALL(TARGETS ustpd
 	RUNTIME DESTINATION sbin
 )
