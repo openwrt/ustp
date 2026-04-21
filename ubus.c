@@ -13,8 +13,10 @@
  */
 #include <libubus.h>
 #include <libubox/uloop.h>
+#include <net/if.h>
 #include "config.h"
 #include "mstp.h"
+#include "bridge_track.h"
 #include "worker.h"
 #include "ubus.h"
 
@@ -150,9 +152,121 @@ ubus_bridge_state(struct ubus_context *ctx, struct ubus_object *obj,
 	return 0;
 }
 
+enum port_config_attr {
+	PORT_CONFIG_BRIDGE,
+	PORT_CONFIG_PORT,
+	PORT_CONFIG_ADMIN_EDGE,
+	PORT_CONFIG_AUTO_EDGE,
+	__PORT_CONFIG_MAX
+};
+
+static const struct blobmsg_policy port_config_policy[__PORT_CONFIG_MAX] = {
+	[PORT_CONFIG_BRIDGE]     = { "bridge",          BLOBMSG_TYPE_STRING },
+	[PORT_CONFIG_PORT]       = { "port",             BLOBMSG_TYPE_STRING },
+	[PORT_CONFIG_ADMIN_EDGE] = { "admin_edge_port",  BLOBMSG_TYPE_BOOL   },
+	[PORT_CONFIG_AUTO_EDGE]  = { "auto_edge_port",   BLOBMSG_TYPE_BOOL   },
+};
+
+static int
+ubus_set_port_config(struct ubus_context *ctx, struct ubus_object *obj,
+		     struct ubus_request_data *req, const char *method,
+		     struct blob_attr *msg)
+{
+	struct blob_attr *tb[__PORT_CONFIG_MAX];
+	struct worker_event ev = {};
+
+	blobmsg_parse(port_config_policy, __PORT_CONFIG_MAX, tb,
+		      blobmsg_data(msg), blobmsg_len(msg));
+
+	if (!tb[PORT_CONFIG_BRIDGE] || !tb[PORT_CONFIG_PORT])
+		return UBUS_STATUS_INVALID_ARGUMENT;
+
+	ev.bridge_idx = if_nametoindex(blobmsg_get_string(tb[PORT_CONFIG_BRIDGE]));
+	if (!ev.bridge_idx)
+		return UBUS_STATUS_NOT_FOUND;
+
+	ev.port_idx = if_nametoindex(blobmsg_get_string(tb[PORT_CONFIG_PORT]));
+	if (!ev.port_idx)
+		return UBUS_STATUS_NOT_FOUND;
+
+	if (tb[PORT_CONFIG_ADMIN_EDGE]) {
+		ev.port_config.admin_edge_port = blobmsg_get_bool(tb[PORT_CONFIG_ADMIN_EDGE]);
+		ev.port_config.set_admin_edge_port = true;
+	}
+	if (tb[PORT_CONFIG_AUTO_EDGE]) {
+		ev.port_config.auto_edge_port = blobmsg_get_bool(tb[PORT_CONFIG_AUTO_EDGE]);
+		ev.port_config.set_auto_edge_port = true;
+	}
+
+	if (!ev.port_config.set_admin_edge_port && !ev.port_config.set_auto_edge_port)
+		return UBUS_STATUS_INVALID_ARGUMENT;
+
+	ev.type = WORKER_EV_PORT_CONFIG;
+	worker_queue_event(&ev);
+
+	return 0;
+}
+
+enum port_status_attr {
+	PORT_STATUS_BRIDGE,
+	PORT_STATUS_PORT,
+	__PORT_STATUS_MAX
+};
+
+static const struct blobmsg_policy port_status_policy[__PORT_STATUS_MAX] = {
+	[PORT_STATUS_BRIDGE] = { "bridge", BLOBMSG_TYPE_STRING },
+	[PORT_STATUS_PORT]   = { "port",   BLOBMSG_TYPE_STRING },
+};
+
+static int
+ubus_get_port_status(struct ubus_context *ctx, struct ubus_object *obj,
+		     struct ubus_request_data *req, const char *method,
+		     struct blob_attr *msg)
+{
+	struct blob_attr *tb[__PORT_STATUS_MAX];
+	bridge_t *br;
+	port_t *prt;
+	CIST_PortStatus status;
+	int bridge_idx, port_idx;
+
+	blobmsg_parse(port_status_policy, __PORT_STATUS_MAX, tb,
+		      blobmsg_data(msg), blobmsg_len(msg));
+
+	if (!tb[PORT_STATUS_BRIDGE] || !tb[PORT_STATUS_PORT])
+		return UBUS_STATUS_INVALID_ARGUMENT;
+
+	bridge_idx = if_nametoindex(blobmsg_get_string(tb[PORT_STATUS_BRIDGE]));
+	if (!bridge_idx)
+		return UBUS_STATUS_NOT_FOUND;
+
+	port_idx = if_nametoindex(blobmsg_get_string(tb[PORT_STATUS_PORT]));
+	if (!port_idx)
+		return UBUS_STATUS_NOT_FOUND;
+
+	br = bridge_find(bridge_idx);
+	if (!br)
+		return UBUS_STATUS_NOT_FOUND;
+
+	prt = port_find(br, port_idx);
+	if (!prt)
+		return UBUS_STATUS_NOT_FOUND;
+
+	MSTP_IN_get_cist_port_status(prt, &status);
+
+	blob_buf_init(&b, 0);
+	blobmsg_add_u8(&b, "admin_edge_port", status.admin_edge_port);
+	blobmsg_add_u8(&b, "auto_edge_port",  status.auto_edge_port);
+	blobmsg_add_u8(&b, "oper_edge_port",  status.oper_edge_port);
+	ubus_send_reply(ctx, req, b.head);
+
+	return 0;
+}
+
 static const struct ubus_method ustp_methods[] = {
-	UBUS_METHOD("add_bridge", ubus_add_bridge, bridge_config_policy),
-	UBUS_METHOD("bridge_state", ubus_bridge_state, bridge_state_policy),
+	UBUS_METHOD("add_bridge",       ubus_add_bridge,       bridge_config_policy),
+	UBUS_METHOD("bridge_state",     ubus_bridge_state,     bridge_state_policy),
+	UBUS_METHOD("set_port_config",  ubus_set_port_config,  port_config_policy),
+	UBUS_METHOD("get_port_status",  ubus_get_port_status,  port_status_policy),
 };
 
 static struct ubus_object_type ustp_object_type =

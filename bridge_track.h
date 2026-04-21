@@ -27,4 +27,7 @@ int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg);
 void bridge_delete(int bridge_idx);
 int bridge_track_fini(void);
 
+bridge_t *bridge_find(int if_index);
+port_t *port_find(bridge_t *br, int if_index);
+
 #endif

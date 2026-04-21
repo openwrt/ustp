@@ -72,6 +72,15 @@ handle_worker_event(struct worker_event *ev)
 	case WORKER_EV_BRIDGE_REMOVE:
 		bridge_delete(ev->bridge_idx);
 		break;
+	case WORKER_EV_PORT_CONFIG: {
+		bridge_t *br = bridge_find(ev->bridge_idx);
+		if (br) {
+			port_t *prt = port_find(br, ev->port_idx);
+			if (prt)
+				MSTP_IN_set_cist_port_config(prt, &ev->port_config);
+		}
+		break;
+	}
 	default:
 		return;
 	}
