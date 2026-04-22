@@ -93,6 +93,14 @@ ubus_set_bridge_config(struct blob_attr *attr)
 	return true;
 }
 
+static void
+ubus_send_ok(struct ubus_context *ctx, struct ubus_request_data *req)
+{
+	blob_buf_init(&b, 0);
+	blobmsg_add_u8(&b, "ok", 1);
+	ubus_send_reply(ctx, req, b.head);
+}
+
 static int
 ubus_add_bridge(struct ubus_context *ctx, struct ubus_object *obj,
 		struct ubus_request_data *req, const char *method,
@@ -100,6 +108,8 @@ ubus_add_bridge(struct ubus_context *ctx, struct ubus_object *obj,
 {
 	if (!ubus_set_bridge_config(msg))
 		return UBUS_STATUS_INVALID_ARGUMENT;
+
+	ubus_send_ok(ctx, req);
 
 	return 0;
 }
@@ -148,6 +158,7 @@ ubus_bridge_state(struct ubus_context *ctx, struct ubus_object *obj,
 	}
 
 	worker_queue_event(&ev);
+	ubus_send_ok(ctx, req);
 
 	return 0;
 }
@@ -203,6 +214,7 @@ ubus_set_port_config(struct ubus_context *ctx, struct ubus_object *obj,
 
 	ev.type = WORKER_EV_PORT_CONFIG;
 	worker_queue_event(&ev);
+	ubus_send_ok(ctx, req);
 
 	return 0;
 }
