@@ -134,18 +134,21 @@ bool is_bridge(char *if_name)
     return (0 == access(path, R_OK));
 }
 
-static int get_port_file(const char *if_name, const char *file)
+static int get_netdev_file(const char *if_name, const char *subdir,
+                           const char *file)
 {
-    char path[32 + IFNAMSIZ];
-    sprintf(path, SYSFS_CLASS_NET "/%s/brport/%s", if_name, file);
+    char path[64 + IFNAMSIZ];
     char buf[128];
     int fd;
     long res = -1;
+
+    snprintf(path, sizeof(path), SYSFS_CLASS_NET "/%s/%s/%s", if_name,
+             subdir, file);
     TSTM((fd = open(path, O_RDONLY)) >= 0, -1, "%m");
     int l;
     if((l = read(fd, buf, sizeof(buf) - 1)) < 0) {
         ERROR("Failed to read file %s: error %m", file);
-        return -1;
+        goto out;
     }
     if(0 == l)
     {
@@ -174,10 +177,24 @@ out:
 
 int get_bpdu_filter(char *if_name)
 {
-	return get_port_file(if_name, "bpdu_filter");
+	return get_netdev_file(if_name, "brport", "bpdu_filter");
 }
 
 int get_bridge_portno(char *if_name)
 {
-	return get_port_file(if_name, "port_no");
+	return get_netdev_file(if_name, "brport", "port_no");
+}
+
+int get_bridge_priority(char *if_name)
+{
+	int priority = get_netdev_file(if_name, "bridge", "priority");
+
+	if (priority < 0)
+		return -1;
+	if (priority > 61440 || priority % 4096) {
+		ERROR("Invalid bridge priority %d for %s", priority, if_name);
+		return -1;
+	}
+
+	return priority;
 }

@@ -14,7 +14,12 @@
 #ifndef __WORKER_H
 #define __WORKER_H
 
+#include <stdbool.h>
+
 #include "mstp.h"
+
+#define WORKER_QUEUE_SIZE 64
+#define WORKER_CONTROL_RESERVE 8
 
 enum worker_event_type {
 	WORKER_EV_SHUTDOWN,
@@ -27,6 +32,7 @@ enum worker_event_type {
 
 struct worker_event {
 	enum worker_event_type type;
+	unsigned int count;
 
 	int bridge_idx;
 	CIST_BridgeConfig bridge_config;
@@ -34,6 +40,6 @@ struct worker_event {
 
 int worker_init(void);
 void worker_cleanup(void);
-void worker_queue_event(struct worker_event *ev);
+bool worker_queue_event(const struct worker_event *ev);
 
 #endif

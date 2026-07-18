@@ -664,6 +664,7 @@ typedef struct
 } CIST_BridgeConfig;
 
 int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg);
+int MSTP_IN_set_cist_bridge_priority(bridge_t *br, __u8 bridge_priority);
 
 /* 12.8.1.4 Set MSTI Bridge Protocol Parameters */
     /* No need in special structure for single parameter Bridge Priority */

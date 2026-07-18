@@ -43,6 +43,8 @@ bridge_config_get(const char *name, bool create)
 		return NULL;
 
 	cfg = calloc_a(sizeof(*cfg), &name_buf, strlen(name) + 1);
+	if (!cfg)
+		return NULL;
 	cfg->node.key = strcpy(name_buf, name);
 	avl_insert(&bridge_config, &cfg->node);
 

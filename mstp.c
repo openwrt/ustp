@@ -268,7 +268,10 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
 
     /* Create CIST */
     if(!(cist = create_tree(br, macaddr, 0)))
+    {
+        driver_delete_bridge(br);
         return false;
+    }
     list_add_tail(&cist->bridge_list, &br->trees);
 
     return true;
@@ -321,6 +324,7 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
                 list_del(&ptp->tree_list);
                 free(ptp);
             }
+            driver_delete_port(prt);
             return false;
         }
         list_add_tail(&ptp->port_list, &prt->trees);
@@ -998,6 +1002,17 @@ int MSTP_IN_set_msti_bridge_config(tree_t *tree, __u8 bridge_priority)
     return 0;
 }
 
+int MSTP_IN_set_cist_bridge_priority(bridge_t *br, __u8 bridge_priority)
+{
+    int ret;
+
+    ret = MSTP_IN_set_msti_bridge_config(GET_CIST_TREE(br), bridge_priority);
+    if (!ret && br->bridgeEnabled)
+        br_state_machines_run(br);
+
+    return ret;
+}
+
 /* 12.8.2.1 Read CIST Port Parameters */
 void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
 {
@@ -1529,6 +1544,7 @@ bool MSTP_IN_create_msti(bridge_t *br, __u16 mstid)
                 list_del(&ptp->tree_list);
                 free(ptp);
             }
+            free(new_tree);
             return false;
         }
         list_add(&new_ptp->port_list, &ptp_after->port_list);

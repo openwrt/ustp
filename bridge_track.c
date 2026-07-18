@@ -217,7 +217,7 @@ static void set_if_up(port_t *prt, bool up)
     int speed = -1;
     int duplex = -1;
     bool changed = false;
-    bool bpdu_filter;
+    int bpdu_filter;
 
     if(check_mac_address(prt->sysdeps.name, prt->sysdeps.macaddr))
     {
@@ -264,9 +264,9 @@ static void set_if_up(port_t *prt, bool up)
         }
 
 	bpdu_filter = get_bpdu_filter(prt->sysdeps.name);
-	if (bpdu_filter != prt->bpduFilterPort) {
+	if (bpdu_filter >= 0 && !!bpdu_filter != prt->bpduFilterPort) {
 	    CIST_PortConfig cfg = {
-		    .bpdu_filter_port = bpdu_filter,
+		    .bpdu_filter_port = !!bpdu_filter,
 		    .set_bpdu_filter_port = true
 	    };
 
@@ -630,7 +630,7 @@ static int not_dot_dotdot(const struct dirent *entry)
 {
 	const char *n = entry->d_name;
 
-	return strcmp(n, ".") || strcmp(n, "..");
+	return strcmp(n, ".") && strcmp(n, "..");
 }
 
 static int get_port_list(const char *br_ifname, struct dirent ***namelist)
@@ -642,6 +642,37 @@ static int get_port_list(const char *br_ifname, struct dirent ***namelist)
 	return scandir(buf, namelist, not_dot_dotdot, versionsort);
 }
 
+static int resolve_port_list(struct dirent **namelist, int n_ports,
+			     int **port_list)
+{
+	int *resolved = NULL;
+	int i = 0;
+
+	if (n_ports) {
+		resolved = calloc(n_ports, sizeof(*resolved));
+		if (!resolved)
+			goto error;
+	}
+
+	for (i = 0; i < n_ports; i++) {
+		resolved[i] = if_nametoindex(namelist[i]->d_name);
+		if (!resolved[i])
+			goto error;
+		free(namelist[i]);
+	}
+	free(namelist);
+	*port_list = resolved;
+	return 0;
+
+error:
+	for (; i < n_ports; i++)
+		free(namelist[i]);
+	free(namelist);
+	free(resolved);
+	*port_list = NULL;
+	return -1;
+}
+
 int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
 {
 	struct dirent **namelist;
@@ -649,6 +680,7 @@ int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
 	bridge_t *br, *other_br;
     port_t *port, *tmp;
 	int flags;
+	int priority;
 	bool found;
 	int i;
 
@@ -659,19 +691,30 @@ int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
 		return -1;
 
 	MSTP_IN_set_cist_bridge_config(br, cfg);
+	priority = get_bridge_priority(br->sysdeps.name);
+	if (priority >= 0) {
+		if (MSTP_IN_set_cist_bridge_priority(br, priority / 4096))
+			ERROR_BRNAME(br, "Couldn't apply bridge priority %d", priority);
+		else
+			INFO_BRNAME(br, "Set bridge priority to %d", priority);
+	} else {
+		ERROR_BRNAME(br, "Keeping current bridge priority after sysfs read error");
+	}
 
 	flags = get_flags(br->sysdeps.name);
 	if (flags >= 0)
 		set_br_up(br, !!(flags & IFF_UP));
 
 	n_ports = get_port_list(br->sysdeps.name, &namelist);
-	port_list = alloca(n_ports * sizeof(*port_list));
-
-	for (i = 0; i < n_ports; i++) {
-		port_list[i] = if_nametoindex(namelist[i]->d_name);
-		free(namelist[i]);
+	if (n_ports < 0) {
+		ERROR_BRNAME(br, "Couldn't enumerate bridge ports: %m");
+		return -1;
 	}
-	free(namelist);
+
+	if (resolve_port_list(namelist, n_ports, &port_list)) {
+		ERROR_BRNAME(br, "Couldn't resolve bridge ports");
+		return -1;
+	}
 
     list_for_each_entry_safe(port, tmp, &br->ports, br_list) {
 		found = false;
@@ -713,6 +756,7 @@ int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
 		set_if_up(port, !(~flags & (IFF_UP | IFF_RUNNING)));
 	}
 
+	free(port_list);
 	return 0;
 }
 

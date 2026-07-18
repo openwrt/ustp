@@ -54,6 +54,8 @@ ubus_set_bridge_config(struct blob_attr *attr)
 		return false;
 
 	cfg = bridge_config_get(blobmsg_get_string(cur), true);
+	if (!cfg)
+		return false;
 
 	bc = &cfg->config;
 	bc->protocol_version = protoRSTP;
@@ -145,7 +147,8 @@ ubus_bridge_state(struct ubus_context *ctx, struct ubus_object *obj,
 		ev.type = WORKER_EV_BRIDGE_REMOVE;
 	}
 
-	worker_queue_event(&ev);
+	if (!worker_queue_event(&ev))
+		return UBUS_STATUS_NO_MEMORY;
 
 	return 0;
 }

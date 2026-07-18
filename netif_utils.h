@@ -40,5 +40,6 @@ bool is_bridge(char *if_name);
 
 int get_bpdu_filter(char *if_name);
 int get_bridge_portno(char *if_name);
+int get_bridge_priority(char *if_name);
 
 #endif /* NETIF_UTILS_H */
