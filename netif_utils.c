@@ -129,15 +129,19 @@ int ethtool_get_speed_duplex(char *ifname, int *speed, int *duplex)
 /* This sysfs stuff might break with interface renames */
 bool is_bridge(char *if_name)
 {
-    char path[32 + IFNAMSIZ];
-    sprintf(path, SYSFS_CLASS_NET "/%s/bridge", if_name);
+    char path[PATH_MAX];
+    int len = snprintf(path, sizeof(path), SYSFS_CLASS_NET "/%s/bridge",
+                       if_name);
+    TSTM(len > 0 && len < (int)sizeof(path), false, "%s", if_name);
     return (0 == access(path, R_OK));
 }
 
 static int get_port_file(const char *if_name, const char *file)
 {
-    char path[32 + IFNAMSIZ];
-    sprintf(path, SYSFS_CLASS_NET "/%s/brport/%s", if_name, file);
+    char path[PATH_MAX];
+    int len = snprintf(path, sizeof(path), SYSFS_CLASS_NET "/%s/brport/%s",
+                       if_name, file);
+    TSTM(len > 0 && len < (int)sizeof(path), -1, "%s/%s", if_name, file);
     char buf[128];
     int fd;
     long res = -1;
