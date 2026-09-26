@@ -149,7 +149,7 @@ static int get_port_file(const char *if_name, const char *file)
     int l;
     if((l = read(fd, buf, sizeof(buf) - 1)) < 0) {
         ERROR("Failed to read file %s: error %m", file);
-        return -1;
+        goto out;
     }
     if(0 == l)
     {
