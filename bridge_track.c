@@ -642,7 +642,7 @@ static int get_port_list(const char *br_ifname, struct dirent ***namelist)
 	return scandir(buf, namelist, not_dot_dotdot, versionsort);
 }
 
-int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
+int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg, __u8 priority)
 {
 	struct dirent **namelist;
 	int *port_list, n_ports;
@@ -659,6 +659,7 @@ int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
 		return -1;
 
 	MSTP_IN_set_cist_bridge_config(br, cfg);
+	MSTP_IN_set_msti_bridge_config(GET_CIST_TREE(br), priority);
 
 	flags = get_flags(br->sysdeps.name);
 	if (flags >= 0)

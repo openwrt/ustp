@@ -23,7 +23,7 @@
 
 #include "mstp.h"
 
-int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg);
+int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg, __u8 priority);
 void bridge_delete(int bridge_idx);
 int bridge_track_fini(void);
 

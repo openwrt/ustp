@@ -20,10 +20,14 @@
 
 extern struct avl_tree bridge_config;
 
+/* bridge priority in steps of 4096, as in MSTP_IN_set_msti_bridge_config */
+#define BRIDGE_CONFIG_DEFAULT_PRIORITY	8
+
 struct bridge_config {
 	struct avl_node node;
 	uint32_t timestamp;
 	CIST_BridgeConfig config;
+	__u8 priority;
 };
 
 struct bridge_config *bridge_config_get(const char *name, bool create);
