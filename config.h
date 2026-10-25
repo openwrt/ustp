@@ -24,6 +24,7 @@ struct bridge_config {
 	struct avl_node node;
 	uint32_t timestamp;
 	CIST_BridgeConfig config;
+	unsigned int priority;
 };
 
 struct bridge_config *bridge_config_get(const char *name, bool create);

@@ -74,6 +74,9 @@ typedef union
 
 typedef __be16 port_identifier_t;
 
+/* in steps of 4096, as in MSTP_IN_set_msti_bridge_config */
+#define DEFAULT_BRIDGE_PRIORITY 8
+
 /* These macros work well for both PortID and BridgeID */
 #define GET_PRIORITY_FROM_IDENTIFIER(id)    (((__u8 *)(&(id)))[0] & 0xF0)
 #define SET_PRIORITY_IN_IDENTIFIER(pri, id) do{ \
@@ -668,7 +671,7 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg);
 /* 12.8.1.4 Set MSTI Bridge Protocol Parameters */
     /* No need in special structure for single parameter Bridge Priority */
 
-int MSTP_IN_set_msti_bridge_config(tree_t *tree, __u8 bridge_priority);
+int MSTP_IN_set_msti_bridge_config(tree_t *tree, unsigned int bridge_priority);
 
 /* 12.8.2.1 Read CIST Port Parameters */
 typedef struct

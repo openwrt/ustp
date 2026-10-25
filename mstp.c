@@ -187,8 +187,9 @@ static tree_t * create_tree(bridge_t *br, __u8 *macaddr, __be16 MSTID)
     INIT_LIST_HEAD(&tree->ports);
 
     memcpy(tree->BridgeIdentifier.s.mac_address, macaddr, ETH_ALEN);
-    /* 0x8000 = default bridge priority (17.14 of 802.1D) */
-    tree->BridgeIdentifier.s.priority = __constant_cpu_to_be16(0x8000) | MSTID;
+    /* 17.14 of 802.1D */
+    tree->BridgeIdentifier.s.priority =
+        __constant_cpu_to_be16(DEFAULT_BRIDGE_PRIORITY << 12) | MSTID;
     assign(tree->BridgePriority.RootID, tree->BridgeIdentifier);
     assign(tree->BridgePriority.RRootID, tree->BridgeIdentifier);
     assign(tree->BridgePriority.DesignatedBridgeID, tree->BridgeIdentifier);
@@ -969,7 +970,7 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
 }
 
 /* 12.8.1.4 Set MSTI Bridge Protocol Parameters */
-int MSTP_IN_set_msti_bridge_config(tree_t *tree, __u8 bridge_priority)
+int MSTP_IN_set_msti_bridge_config(tree_t *tree, unsigned int bridge_priority)
 {
     per_tree_port_t *ptp;
     __u8 valuePri;

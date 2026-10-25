@@ -27,6 +27,7 @@ enum bridge_config_attr {
 	BRIDGE_CONFIG_HELLO_TIME,
 	BRIDGE_CONFIG_MAX_AGE,
 	BRIDGE_CONFIG_AGEING_TIME,
+	BRIDGE_CONFIG_PRIORITY,
 	__BRIDGE_CONFIG_MAX
 };
 
@@ -37,6 +38,7 @@ static const struct blobmsg_policy bridge_config_policy[__BRIDGE_CONFIG_MAX] = {
 	[BRIDGE_CONFIG_HELLO_TIME] = { "hello_time", BLOBMSG_TYPE_INT32 },
 	[BRIDGE_CONFIG_MAX_AGE] = { "max_age", BLOBMSG_TYPE_INT32 },
 	[BRIDGE_CONFIG_AGEING_TIME] = { "ageing_time", BLOBMSG_TYPE_INT32 },
+	[BRIDGE_CONFIG_PRIORITY] = { "priority", BLOBMSG_TYPE_INT32 },
 };
 
 static bool
@@ -54,6 +56,11 @@ ubus_set_bridge_config(struct blob_attr *attr)
 		return false;
 
 	cfg = bridge_config_get(blobmsg_get_string(cur), true);
+
+	/* the bridge identifier carries the priority in steps of 4096 */
+	cfg->priority = DEFAULT_BRIDGE_PRIORITY;
+	if ((cur = tb[BRIDGE_CONFIG_PRIORITY]) != NULL)
+		cfg->priority = blobmsg_get_u32(cur) >> 12;
 
 	bc = &cfg->config;
 	bc->protocol_version = protoRSTP;
@@ -141,6 +148,7 @@ ubus_bridge_state(struct ubus_context *ctx, struct ubus_object *obj,
 
 		ev.type = WORKER_EV_BRIDGE_ADD;
 		ev.bridge_config = cfg->config;
+		ev.bridge_priority = cfg->priority;
 	} else {
 		ev.type = WORKER_EV_BRIDGE_REMOVE;
 	}

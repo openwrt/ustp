@@ -30,6 +30,7 @@ struct worker_event {
 
 	int bridge_idx;
 	CIST_BridgeConfig bridge_config;
+	unsigned int bridge_priority;
 };
 
 int worker_init(void);

@@ -67,7 +67,8 @@ handle_worker_event(struct worker_event *ev)
 		packet_rcv();
 		break;
 	case WORKER_EV_BRIDGE_ADD:
-		bridge_create(ev->bridge_idx, &ev->bridge_config);
+		bridge_create(ev->bridge_idx, &ev->bridge_config,
+			      ev->bridge_priority);
 		break;
 	case WORKER_EV_BRIDGE_REMOVE:
 		bridge_delete(ev->bridge_idx);
