@@ -11,6 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <net/if.h>
 #include <string.h>
 
 #include <libubox/avl-cmp.h>
@@ -60,6 +61,10 @@ void bridge_config_expire(void)
 	ts = bridge_config_timestamp();
 	avl_for_each_element_safe(&bridge_config, cfg, node, tmp) {
 		if (ts - cfg->timestamp < 60)
+			continue;
+
+		/* a manual stp_state change starts STP without stp_init */
+		if (if_nametoindex(cfg->node.key))
 			continue;
 
 		avl_delete(&bridge_config, &cfg->node);

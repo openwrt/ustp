@@ -55,6 +55,7 @@ ubus_set_bridge_config(struct blob_attr *attr)
 	if (!cur)
 		return false;
 
+	bridge_config_expire();
 	cfg = bridge_config_get(blobmsg_get_string(cur), true);
 
 	/* the bridge identifier carries the priority in steps of 4096 */
